@@ -1,0 +1,2 @@
+slackClient
+python-binance
