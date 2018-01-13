@@ -7,6 +7,7 @@ import time
 import json
 import logging
 from datetime import datetime
+from decimal import Decimal
 
 logger = logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,11 +50,11 @@ def determine_buy_amount(balance):
     return amount
 
 def determine_initial_buy_price(currentTicker):
-    price = round(currentTicker - (currentTicker * buyValuePercent), 8)
+    price = round(currentTicker - (currentTicker * round(Decimal(buyValuePercent), 2)), 8)
     return price
 
 def determine_initial_sell_price(currentTicker):
-    price = round(currentTicker + (currentTicker * sellValuePercent), 8)
+    price = round(currentTicker + (currentTicker * round(Decimal(sellValuePercent), 2)), 8)
     return price
 
 def get_oid(data):
@@ -97,7 +98,7 @@ def place_order_pair():
     balance = (float(balance['free']) + float(extCoinBalance))
     buyAmount = determine_buy_amount(balance)
     ticker = client.get_ticker(symbol=tokenPair)
-    price = float(ticker['lastPrice'])
+    price = round(Decimal(ticker['lastPrice']), 8)
     buyPrice = determine_initial_buy_price(price)
     log("setting buy of " + str(buyAmount) + " at " + str(buyPrice))
     log(client.create_order(symbol=tokenPair, price=buyPrice, quantity=buyAmount,
