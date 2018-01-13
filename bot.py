@@ -137,8 +137,7 @@ while True:
                 oid = get_oid(targetOrderToCancel)
                 log("Cancel order " + oid)
                 log(client.cancel_order(symbol=tokenPair, origClientOrderId=oid))
-            except, e:
-                log(e, logging.ERROR)
+            except:
                 logging.info ("Order cancellation failed!!!")
                 if token:
                     post_slack(type)
