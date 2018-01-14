@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-__author__ = 'sivapopuri'
 
 from binance.client import Client
 from slackclient import SlackClient
@@ -29,7 +28,7 @@ volumePercent = config.get('buyVolumePercent', 4)
 buyDifference = config.get('buyDifference', 0)
 extCoinBalance = config.get('extCoinBalance', 0)
 checkInterval = config.get('checkInterval', 30)
-initialSellPrice = config.get('initialSellPrice', 0)
+initialsell_price = config.get('initialsell_price', 0)
 tradeAmount = config.get('tradeAmount', 0)
 channel = config['slackChannel']
 token = config['slackToken']
@@ -42,34 +41,41 @@ buyValuePercent *= .01
 buyDifference *= .01
 tokenPair = currency.upper() + trade.upper()
 
+
 def determine_sell_amount(balance):
     return int(round(balance * volumePercent))
+
 
 def determine_buy_amount(balance):
     amount = int(round(balance * volumePercent * (1 / (1 - volumePercent) * 1 + buyDifference)))
     return amount
 
-def determine_initial_buy_price(currentTicker):
-    price = round(currentTicker - (currentTicker * round(Decimal(buyValuePercent), 2)), 8)
+
+def determine_initial_buy_price(current_ticker):
+    price = round(current_ticker - (current_ticker * round(Decimal(buyValuePercent), 2)), 8)
     return price
 
-def determine_initial_sell_price(currentTicker):
-    price = round(currentTicker + (currentTicker * round(Decimal(sellValuePercent), 2)), 8)
+
+def determine_initial_sell_price(current_ticker):
+    price = round(current_ticker + (current_ticker * round(Decimal(sellValuePercent), 2)), 8)
     return price
+
 
 def get_oid(data):
     return data['clientOrderId']
 
 
-def get_last_buy_order(completedBuyOrders):
-    data = completedBuyOrders['datas']
-    orderTime = (data[0]['createdAt'])
-    return(orderTime)
+def get_last_buy_order(completed_buy_orders):
+    data = completed_buy_orders['datas']
+    order_time = (data[0]['createdAt'])
+    return order_time
 
-def get_last_sell_order(completedSellOrders):
-    data = completedSellOrders['datas']
-    orderTime = (data[0]['createdAt'])
-    return (orderTime)
+
+def get_last_sell_order(completed_sell_orders):
+    data = completed_sell_orders['datas']
+    order_time = (data[0]['createdAt'])
+    return order_time
+
 
 def post_slack(type):
     log("Attempting to send message...")
@@ -81,82 +87,88 @@ def post_slack(type):
         text=text
     )
 
-def get_order_price(orderData):
-    data = orderData['datas']
+
+def get_order_price(order_data):
+    data = order_data['datas']
     data = data[0]
     price = data['dealPrice']
     return price
 
 
-def is_within_check_time(timeToCheckInMillis, baseTimeInMillis, intervalInSec):
-    return abs(timeToCheckInMillis - baseTimeInMillis) <= (intervalInSec * 1000)
+def is_within_check_time(time_to_check_in_millis, base_time_in_millis, interval_in_sec):
+    return abs(time_to_check_in_millis - base_time_in_millis) <= (interval_in_sec * 1000)
 
 
 def place_order_pair():
     balance = client.get_asset_balance(currency)
     log('BALANCE' + str(balance))
     balance = (float(balance['free']) + float(extCoinBalance))
-    buyAmount = determine_buy_amount(balance)
+    buy_amount = determine_buy_amount(balance)
     ticker = client.get_ticker(symbol=tokenPair)
     price = round(Decimal(ticker['lastPrice']), 8)
-    buyPrice = determine_initial_buy_price(price)
-    log("setting buy of " + str(buyAmount) + " at " + str(buyPrice))
-    log(client.create_order(symbol=tokenPair, price=buyPrice, quantity=buyAmount,
-                            side='BUY', type='LIMIT', timeInForce='GTC', icebergQty=int(buyAmount/4)))
-    sellAmount = determine_sell_amount(balance)
-    sellPrice = determine_initial_sell_price(price)
-    log("setting sell of " + str(sellAmount) + " at " + str(sellPrice))
-    log(client.create_order(symbol=tokenPair, price=sellPrice, quantity=sellAmount,
-                            side='SELL', type='LIMIT', timeInForce='GTC', icebergQty=int(sellAmount/4)))
+    buy_price = determine_initial_buy_price(price)
+    log("setting buy of " + str(buy_amount) + " at " + str(buy_price))
+    log(client.create_order(symbol=tokenPair, price=buy_price, quantity=buy_amount,
+                            side='BUY', type='LIMIT', timeInForce='GTC', icebergQty=int(buy_amount/4)))
+    sell_amount = determine_sell_amount(balance)
+    sell_price = determine_initial_sell_price(price)
+    log("setting sell of " + str(sell_amount) + " at " + str(sell_price))
+    log(client.create_order(symbol=tokenPair, price=sell_price, quantity=sell_amount,
+                            side='SELL', type='LIMIT', timeInForce='GTC', icebergQty=int(sell_amount/4)))
 
-cycle = 0
-while True:
-    try:
-        buyOrderData = None
-        sellOrderData = None
-        openOrders = client.get_open_orders(symbol=tokenPair)
+
+def main():
+    cycle = 0
+    while True:
         try:
-            if openOrders and openOrders[0]:
-                if openOrders[0]['side'] == 'SELL':
-                    sellOrderData = openOrders[0]
-                else:
-                    buyOrderData = openOrders[0]
-            if openOrders and openOrders[1]:
-                if openOrders[1]['side'] == 'BUY':
-                    buyOrderData = openOrders[1]
-                else:
-                    sellOrderData = openOrders[1]
-        except IndexError:
-            # ignore
-            pass
-        if buyOrderData and sellOrderData:
-            log(openOrders)
-            log('The order pair still set!!!')
-        elif (buyOrderData and not sellOrderData) or (sellOrderData and not buyOrderData):
-            targetOrderToCancel = buyOrderData or sellOrderData
+            buy_order_data = None
+            sell_order_data = None
+            openOrders = client.get_open_orders(symbol=tokenPair)
             try:
-                oid = get_oid(targetOrderToCancel)
-                log("Cancel order " + oid)
-                log(client.cancel_order(symbol=tokenPair, origClientOrderId=oid))
-            except:
-                logging.info ("Order cancellation failed!!!")
-                if token:
-                    post_slack(type)
-            log('Order cancellation finished!!!')
-            log('Placing a fresh set of order pair...')
-            place_order_pair()
-        else:
-            log("No orders present...setting to ticker price")
-            place_order_pair()
+                if openOrders and openOrders[0]:
+                    if openOrders[0]['side'] == 'SELL':
+                        sell_order_data = openOrders[0]
+                    else:
+                        buy_order_data = openOrders[0]
+                if openOrders and openOrders[1]:
+                    if openOrders[1]['side'] == 'BUY':
+                        buy_order_data = openOrders[1]
+                    else:
+                        sell_order_data = openOrders[1]
+            except IndexError:
+                # ignore
+                pass
+            if buy_order_data and sell_order_data:
+                log(openOrders)
+                log('The order pair still set!!!')
+            elif (buy_order_data and not sell_order_data) or (sell_order_data and not buy_order_data):
+                target_order_to_cancel = buy_order_data or sell_order_data
+                try:
+                    oid = get_oid(target_order_to_cancel)
+                    log("Cancel order " + oid)
+                    log(client.cancel_order(symbol=tokenPair, origClientOrderId=oid))
+                except:
+                    logging.info("Order cancellation failed!!!")
+                    if token:
+                        post_slack(type)
+                log('Order cancellation finished!!!')
+                log('Placing a fresh set of order pair...')
+                place_order_pair()
+            else:
+                log("No orders present...setting to ticker price")
+                place_order_pair()
 
-    except Exception as e:
-        if e.code == -1013:
-            log('The total amount does not met, need to increase limits....', logging.ERROR)
-        log(e)
+        except Exception as e:
+            if e.code == -1013:
+                log('The total amount does not met, need to increase limits....', logging.ERROR)
+            log(e)
 
-    if cycle == 100:
-        log("Garbage collection")
-        gc.collect()
-        count = 0
-    log("Waiting " + str(checkInterval) + " for next cycle...")
-    time.sleep(int(checkInterval))
+        if cycle == 100:
+            log("Garbage collection")
+            gc.collect()
+            count = 0
+        log("Waiting " + str(checkInterval) + " for next cycle...")
+        time.sleep(int(checkInterval))
+
+if __name__ == '__main__':
+    main()
