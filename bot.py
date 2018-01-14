@@ -77,10 +77,10 @@ def get_last_sell_order(completed_sell_orders):
     return order_time
 
 
-def post_slack(type):
+def post_slack(order_type):
     log("Attempting to send message...")
     sc = SlackClient(token)
-    text = type + " completed for " + currency
+    text = order_type + " completed for " + currency
     sc.api_call(
         "chat.postMessage",
         channel=channel,
@@ -123,23 +123,23 @@ def main():
         try:
             buy_order_data = None
             sell_order_data = None
-            openOrders = client.get_open_orders(symbol=tokenPair)
+            open_orders = client.get_open_orders(symbol=tokenPair)
             try:
-                if openOrders and openOrders[0]:
-                    if openOrders[0]['side'] == 'SELL':
-                        sell_order_data = openOrders[0]
+                if open_orders and open_orders[0]:
+                    if open_orders[0]['side'] == 'SELL':
+                        sell_order_data = open_orders[0]
                     else:
-                        buy_order_data = openOrders[0]
-                if openOrders and openOrders[1]:
-                    if openOrders[1]['side'] == 'BUY':
-                        buy_order_data = openOrders[1]
+                        buy_order_data = open_orders[0]
+                if open_orders and open_orders[1]:
+                    if open_orders[1]['side'] == 'BUY':
+                        buy_order_data = open_orders[1]
                     else:
-                        sell_order_data = openOrders[1]
+                        sell_order_data = open_orders[1]
             except IndexError:
                 # ignore
                 pass
             if buy_order_data and sell_order_data:
-                log(openOrders)
+                log(open_orders)
                 log('The order pair still set!!!')
             elif (buy_order_data and not sell_order_data) or (sell_order_data and not buy_order_data):
                 target_order_to_cancel = buy_order_data or sell_order_data
@@ -159,14 +159,13 @@ def main():
                 place_order_pair()
 
         except Exception as e:
-            if e.code == -1013:
+            if e.code and e.code == -1013:
                 log('The total amount does not met, need to increase limits....', logging.ERROR)
             log(e)
 
         if cycle == 100:
             log("Garbage collection")
             gc.collect()
-            count = 0
         log("Waiting " + str(checkInterval) + " for next cycle...")
         time.sleep(int(checkInterval))
 
