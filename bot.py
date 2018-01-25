@@ -24,7 +24,7 @@ trade = config['trade']
 currency = config['currency']
 sellValuePercent = config.get('sellValuePercent', 4)
 buyValuePercent = config.get('buyValuePercent', 4)
-volumePercent = config.get('buyVolumePercent', 4)
+volumePercent = config.get('volumePercent', 4)
 buyDifference = config.get('buyDifference', 0)
 extCoinBalance = config.get('extCoinBalance', 0)
 checkInterval = config.get('checkInterval', 30)
@@ -113,7 +113,6 @@ def get_ticker_price():
 
 def place_order_pair():
     balance = client.get_asset_balance(currency)
-    log('BALANCE' + str(balance))
     balance = (float(balance['free']) + float(extCoinBalance))
     buy_amount = determine_buy_amount(balance)
     price = get_ticker_price()
@@ -161,7 +160,6 @@ def get_net_profit_or_loss():
 
 def main():
     cycle = 0
-    p = get_net_profit_or_loss()
     while True:
         try:
             buy_order_data = None
