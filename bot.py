@@ -52,12 +52,12 @@ def determine_buy_amount(balance):
 
 
 def determine_initial_buy_price(current_ticker):
-    price = round(current_ticker - (current_ticker * round(Decimal(buyValuePercent), 2)), 8)
+    price = round(current_ticker - (current_ticker * round(Decimal(buyValuePercent), 2)), 6)
     return price
 
 
 def determine_initial_sell_price(current_ticker):
-    price = round(current_ticker + (current_ticker * round(Decimal(sellValuePercent), 2)), 8)
+    price = round(current_ticker + (current_ticker * round(Decimal(sellValuePercent), 2)), 6)
     return price
 
 
@@ -200,7 +200,7 @@ def main():
 
         except Exception as e:
             if e.code and e.code == -1013:
-                log('The total amount does not met, need to increase limits....', logging.ERROR)
+                log('The total amount does not meet minimum requirements, need to increase limits....', logging.ERROR)
             log(e)
 
         if cycle == 100:
