@@ -183,6 +183,12 @@ def main():
                 log(open_orders)
                 log('The order pair still set!!!')
             elif (buy_order_data and not sell_order_data) or (sell_order_data and not buy_order_data):
+                if buy_order_data:
+                    order_type = "SELL"
+                elif sell_order_data:
+                    order_type = "BUY"
+                else:
+                    log("Setting order type for slack message failed...")
                 target_order_to_cancel = buy_order_data or sell_order_data
                 try:
                     oid = get_oid(target_order_to_cancel)
@@ -190,7 +196,7 @@ def main():
                     log(client.cancel_order(symbol=tokenPair, origClientOrderId=oid))
                 except:
                     logging.info("Order cancellation failed!!!")
-                post_slack(type)
+                post_slack(order_type)
                 log('Order cancellation finished!!!')
                 log('Placing a fresh set of order pair...')
                 place_order_pair()
